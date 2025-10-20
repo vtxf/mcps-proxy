@@ -496,10 +496,11 @@ class SchemaConnections {
 
         let server: IMCPServer;
 
+        const { type = 'stdio' } = serverConfig
+
         // 根据配置类型创建相应的MCP服务器实例
-        switch (serverConfig.type) {
+        switch (type) {
             case "stdio":
-            case undefined: // 默认为stdio类型
                 server = new StdioMCPServer(serverId, serverConfig as StdioServerConfig);
                 break;
 
