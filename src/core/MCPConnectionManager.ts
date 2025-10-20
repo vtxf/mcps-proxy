@@ -45,6 +45,11 @@ export class MCPConnectionManager {
 
         // 添加所有MCP服务器
         for (const [serverId, serverConfig] of Object.entries(config.mcpServers)) {
+            if (serverId.includes(MCPConnectionManager.separator)) {
+                logger.warn(`Server ID '${serverId}' contains separator '${MCPConnectionManager.separator}', which is not allowed`);
+                continue;
+            }
+
             await schemaConnections.addServer(serverId, serverConfig);
         }
 
