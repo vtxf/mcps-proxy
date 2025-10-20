@@ -318,12 +318,16 @@ export class SSEMCPServer extends EventEmitter implements IMCPServer {
         }
 
         const id = this.requestId++;
-        const request = {
+        const request: any = {
             jsonrpc: "2.0",
             method,
-            params,
             id,
         };
+
+        // 只有当params不为null和undefined时才添加
+        if (params !== null && params !== undefined) {
+            request.params = params;
+        }
 
         return new Promise((resolve, reject) => {
             // 设置超时
@@ -382,6 +386,7 @@ export class SSEMCPServer extends EventEmitter implements IMCPServer {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
+                    "Accept": "application/json, text/event-stream",
                     ...this.config.headers,
                 },
                 body: JSON.stringify(request),
