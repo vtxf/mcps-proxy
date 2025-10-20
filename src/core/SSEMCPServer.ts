@@ -19,6 +19,7 @@ import {
 } from "../types/MCPTypes";
 import { SSEServerConfig } from "../types/ConfigTypes";
 import { logger } from "../utils/Logger";
+import { EventSource } from "eventsource";
 
 export class SSEMCPServer extends EventEmitter implements IMCPServer {
     public readonly id: string;
