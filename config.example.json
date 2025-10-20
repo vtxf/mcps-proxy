@@ -1,0 +1,37 @@
+{
+  "$schema": "./schema/config.schema.json",
+  "server": {
+    "port": 3095,
+    "host": "0.0.0.0",
+    "cors": {
+      "enabled": true,
+      "origins": ["*"],
+      "methods": ["GET", "POST", "OPTIONS"],
+      "credentials": false,
+      "allowedHeaders": ["Content-Type", "Authorization"]
+    }
+  },
+  "schemas": {
+    "default": {
+      "enabled": true,
+      "mcpServers": {
+        "filesystem": {
+          "command": "npx",
+          "args": ["@modelcontextprotocol/server-filesystem", "."],
+          "env": {
+            "NODE_ENV": "production"
+          },
+          "timeout": 30000,
+          "restart": true
+        }
+      }
+    }
+  },
+  "logging": {
+    "level": "info",
+    "file": "~/.mcps-proxy/logs/mcps-proxy.log",
+    "maxSize": "10MB",
+    "maxFiles": 5,
+    "console": true
+  }
+}

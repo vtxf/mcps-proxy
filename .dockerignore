@@ -1,0 +1,46 @@
+# Node modules
+node_modules
+npm-debug.log*
+
+# Build artifacts
+dist/
+build/
+
+# Tests
+tests/
+*.test.ts
+*.spec.ts
+
+# Development files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Config files with sensitive data
+.env
+.env.local
+.env.*.local
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+docs/
+*.md
+
+# Config examples
+config.example.json
+
+# Development dependencies
+package-lock.json
+yarn.lock

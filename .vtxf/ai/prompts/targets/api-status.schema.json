@@ -1,0 +1,136 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "vtxf/mcps-proxy/schema/api-status.schema.json",
+  "title": "MCPS Proxy API Status Response",
+  "description": "JSON schema for the mcps-proxy status API response",
+  "type": "object",
+  "required": ["server", "schemas", "summary"],
+  "properties": {
+    "server": {
+      "type": "object",
+      "description": "Server information",
+      "required": ["status", "port", "url", "uptime"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "description": "Current server status",
+          "enum": ["running", "stopped", "error"]
+        },
+        "port": {
+          "type": "integer",
+          "description": "Port number the server is listening on",
+          "minimum": 1,
+          "maximum": 65535
+        },
+        "url": {
+          "type": "string",
+          "description": "Full URL of the server",
+          "format": "uri"
+        },
+        "uptime": {
+          "type": "string",
+          "description": "Server uptime in HH:MM:SS format",
+          "pattern": "^([0-1]?[0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$"
+        }
+      }
+    },
+    "schemas": {
+      "type": "object",
+      "description": "Information about all configured schemas",
+      "patternProperties": {
+        "^[a-zA-Z0-9_-]+$": {
+          "type": "object",
+          "description": "Schema configuration and status",
+          "required": ["status", "mcpServers", "totalTools", "connectedServers"],
+          "properties": {
+            "status": {
+              "type": "string",
+              "description": "Current schema status",
+              "enum": ["active", "inactive", "error"]
+            },
+            "mcpServers": {
+              "type": "array",
+              "description": "List of MCP servers in this schema",
+              "items": {
+                "type": "object",
+                "required": ["id", "name", "status", "type", "toolCount"],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "Unique identifier for the MCP server"
+                  },
+                  "name": {
+                    "type": "string",
+                    "description": "Display name of the MCP server"
+                  },
+                  "status": {
+                    "type": "string",
+                    "description": "Connection status of the MCP server",
+                    "enum": ["connected", "disconnected", "error", "connecting"]
+                  },
+                  "type": {
+                    "type": "string",
+                    "description": "Connection type of the MCP server",
+                    "enum": ["stdio", "http", "sse"]
+                  },
+                  "toolCount": {
+                    "type": "integer",
+                    "description": "Number of tools provided by this MCP server",
+                    "minimum": 0
+                  }
+                }
+              }
+            },
+            "totalTools": {
+              "type": "integer",
+              "description": "Total number of tools available in this schema",
+              "minimum": 0
+            },
+            "connectedServers": {
+              "type": "integer",
+              "description": "Number of connected MCP servers in this schema",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "description": "Summary statistics across all schemas",
+      "required": ["totalSchemas", "activeSchemas", "totalServers", "connectedServers", "failedServers", "totalTools"],
+      "properties": {
+        "totalSchemas": {
+          "type": "integer",
+          "description": "Total number of configured schemas",
+          "minimum": 0
+        },
+        "activeSchemas": {
+          "type": "integer",
+          "description": "Number of active schemas",
+          "minimum": 0
+        },
+        "totalServers": {
+          "type": "integer",
+          "description": "Total number of configured MCP servers",
+          "minimum": 0
+        },
+        "connectedServers": {
+          "type": "integer",
+          "description": "Number of connected MCP servers",
+          "minimum": 0
+        },
+        "failedServers": {
+          "type": "integer",
+          "description": "Number of failed MCP server connections",
+          "minimum": 0
+        },
+        "totalTools": {
+          "type": "integer",
+          "description": "Total number of tools across all schemas",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}

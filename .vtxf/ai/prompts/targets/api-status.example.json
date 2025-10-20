@@ -1,0 +1,67 @@
+{
+  "server": {
+    "status": "running",
+    "port": 3095,
+    "url": "http://localhost:3095",
+    "uptime": "00:05:23"
+  },
+  "schemas": {
+    "default": {
+      "status": "active",
+      "mcpServers": [
+        {
+          "id": "filesystem",
+          "name": "文件系统服务器",
+          "status": "connected",
+          "type": "stdio",
+          "toolCount": 8
+        },
+        {
+          "id": "git",
+          "name": "Git工具",
+          "status": "connected",
+          "type": "stdio",
+          "toolCount": 12
+        }
+      ],
+      "totalTools": 20,
+      "connectedServers": 2
+    },
+    "dev": {
+      "status": "active",
+      "mcpServers": [
+        {
+          "id": "filesystem",
+          "name": "文件系统",
+          "status": "connected",
+          "type": "stdio",
+          "toolCount": 5
+        }
+      ],
+      "totalTools": 5,
+      "connectedServers": 1
+    },
+    "production": {
+      "status": "active",
+      "mcpServers": [
+        {
+          "id": "database",
+          "name": "数据库服务器",
+          "status": "connected",
+          "type": "http",
+          "toolCount": 3
+        }
+      ],
+      "totalTools": 3,
+      "connectedServers": 1
+    }
+  },
+  "summary": {
+    "totalSchemas": 3,
+    "activeSchemas": 3,
+    "totalServers": 4,
+    "connectedServers": 4,
+    "failedServers": 0,
+    "totalTools": 28
+  }
+}

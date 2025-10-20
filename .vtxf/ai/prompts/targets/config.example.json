@@ -1,0 +1,100 @@
+{
+  "server": {
+    "port": 3095,
+    "host": "0.0.0.0",
+    "cors": {
+      "enabled": true,
+      "origins": ["*"],
+      "methods": ["GET", "POST", "OPTIONS"],
+      "credentials": false,
+      "allowedHeaders": ["Content-Type", "Authorization"]
+    }
+  },
+  "schemas": {
+    "default": {
+      "enabled": true,
+      "mcpServers": {
+        "filesystem": {
+          "command": "npx",
+          "args": ["@modelcontextprotocol/server-filesystem", "."],
+          "env": {
+            "NODE_ENV": "production"
+          },
+          "timeout": 30000,
+          "restart": true
+        },
+        "git": {
+          "command": "npx",
+          "args": ["@modelcontextprotocol/server-git", "--repository", "."],
+          "cwd": ".",
+          "restart": true
+        },
+        "web-search": {
+          "type": "http",
+          "url": "https://open.bigmodel.cn/api/mcp/web_search_prime/mcp",
+          "headers": {
+            "Authorization": "Bearer ${Z_AI_API_KEY}",
+            "Content-Type": "application/json"
+          },
+          "timeout": 15000,
+          "retries": 3
+        }
+      }
+    },
+    "development": {
+      "enabled": true,
+      "mcpServers": {
+        "filesystem": {
+          "command": "npx",
+          "args": ["@modelcontextprotocol/server-filesystem", "./dev"],
+          "cwd": "./dev"
+        },
+        "database": {
+          "type": "http",
+          "url": "http://localhost:5432/mcp",
+          "headers": {
+            "X-API-Key": "${DEV_DB_API_KEY}"
+          },
+          "timeout": 10000
+        },
+        "python-tools": {
+          "command": "python",
+          "args": ["-m", "dev_mcp_server"],
+          "env": {
+            "PYTHONPATH": "./src",
+            "DEBUG": "true",
+            "API_KEY": "${PYTHON_API_KEY}"
+          },
+          "cwd": "./dev"
+        }
+      }
+    },
+    "production": {
+      "enabled": true,
+      "mcpServers": {
+        "filesystem": {
+          "command": "npx",
+          "args": ["@modelcontextprotocol/server-filesystem", "/app/data"],
+          "env": {
+            "NODE_ENV": "production"
+          }
+        },
+        "monitoring": {
+          "type": "http",
+          "url": "http://monitoring-service:8080/mcp",
+          "headers": {
+            "Authorization": "Bearer ${MONITORING_TOKEN}"
+          },
+          "timeout": 5000
+        }
+      }
+    }
+  },
+  "logging": {
+    "level": "info",
+    "file": "~/.mcps-proxy/logs/mcps-proxy.log",
+    "maxSize": "10MB",
+    "maxFiles": 5,
+    "console": true
+  }
+}
