@@ -193,7 +193,12 @@ export class SSEMCPServer extends EventEmitter implements IMCPServer {
         return new Promise((resolve, reject) => {
             try {
                 // 注意：在Node.js环境中，可能需要使用polyfill或EventSource的替代实现
-                this.eventSource = new EventSource(this.config.url);
+                // eventsource polyfill支持传递headers参数
+                logger.debug(`SSE server '${this.id}' connecting with headers:`, this.config.headers);
+                const eventSourceOptions: any = {
+                    headers: this.config.headers
+                };
+                this.eventSource = new EventSource(this.config.url, eventSourceOptions);
 
                 // 设置事件监听器
                 this.eventSource.onopen = () => {
