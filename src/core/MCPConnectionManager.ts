@@ -28,6 +28,8 @@ import { SSEMCPServer } from "./SSEMCPServer";
 export class MCPConnectionManager {
     private schemas: Map<string, SchemaConnections> = new Map();
 
+    static separator = "##";
+
     /**
      * 添加schema和对应的MCP服务器
      */
@@ -86,7 +88,7 @@ export class MCPConnectionManager {
                     // 为每个工具添加服务器前缀
                     const prefixedTools = result.tools.map(tool => ({
                         ...tool,
-                        name: `${serverId}-${tool.name}`,
+                        name: `${serverId}${MCPConnectionManager.separator}${tool.name}`,
                         annotations: {
                             ...tool.annotations,
                             title: tool.annotations?.title || `[${serverId}] ${tool.name}`,
@@ -468,13 +470,13 @@ export class MCPConnectionManager {
      * 解析工具名称，提取服务器ID和工具名
      */
     private parseToolName(fullToolName: string): { serverId?: string; toolName?: string } {
-        const dashIndex = fullToolName.indexOf("-");
+        const dashIndex = fullToolName.indexOf(MCPConnectionManager.separator);
         if (dashIndex === -1) {
             return {};
         }
 
         const serverId = fullToolName.substring(0, dashIndex);
-        const toolName = fullToolName.substring(dashIndex + 1);
+        const toolName = fullToolName.substring(dashIndex + MCPConnectionManager.separator.length);
 
         return { serverId, toolName };
     }
