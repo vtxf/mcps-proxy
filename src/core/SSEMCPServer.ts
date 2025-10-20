@@ -35,6 +35,7 @@ export class SSEMCPServer extends EventEmitter implements IMCPServer {
     private statusChangeCallback?: (status: ServerStatus) => void;
     private reconnectAttempts = 0;
     private reconnectTimer?: NodeJS.Timeout;
+    private messageEndpoint?: string; // 新增：消息端点URL
 
     constructor(id: string, config: SSEServerConfig) {
         super();
@@ -112,6 +113,9 @@ export class SSEMCPServer extends EventEmitter implements IMCPServer {
                 this.eventSource = undefined;
             }
 
+            // 清理消息端点
+            this.messageEndpoint = undefined;
+
             this.updateStatus("disconnected");
             logger.info(`SSE server '${this.id}' disconnected`);
 
@@ -125,8 +129,7 @@ export class SSEMCPServer extends EventEmitter implements IMCPServer {
      * 检查连接状态
      */
     public isConnected(): boolean {
-        return this.status.status === "connected" &&
-               this.eventSource !== undefined &&
+        return this.eventSource !== undefined &&
                this.eventSource.readyState === EventSource.OPEN;
     }
 
@@ -210,6 +213,12 @@ export class SSEMCPServer extends EventEmitter implements IMCPServer {
                     this.handleMessage(event);
                 };
 
+                // 监听特定事件类型
+                this.eventSource.addEventListener('endpoint', (event) => {
+                    logger.debug(`Received endpoint event for server '${this.id}'`);
+                    this.handleMessage(event);
+                });
+
                 this.eventSource.onerror = (event) => {
                     logger.error(`SSE error for server '${this.id}':`, event);
 
@@ -243,18 +252,26 @@ export class SSEMCPServer extends EventEmitter implements IMCPServer {
     /**
      * 处理SSE消息
      */
-    private handleMessage(event: MessageEvent): void {
+    private handleMessage(event: any): void {
         try {
             const data = event.data;
             if (!data || typeof data !== "string") {
                 return;
             }
 
+            // 处理endpoint事件
+            if (event.type === 'endpoint' || event.event === 'endpoint') {
+                this.messageEndpoint = data;
+                logger.info(`SSE server '${this.id}' received message endpoint: ${this.messageEndpoint}`);
+                return;
+            }
+
+            // 处理JSON-RPC响应
             const message = JSON.parse(data);
             this.handleResponse(message);
 
         } catch (error) {
-            logger.error(`Failed to handle SSE message from server '${this.id}':`, error);
+            logger.error(`Failed to handle SSE message from server '${this.id}'. Raw data:`, event.data, error);
         }
     }
 
@@ -262,17 +279,20 @@ export class SSEMCPServer extends EventEmitter implements IMCPServer {
      * 处理JSON-RPC响应
      */
     private handleResponse(response: any): void {
+        logger.debug(`Received response from SSE server '${this.id}':`, response);
+
         const { id, result, error } = response;
 
         if (id === undefined) {
             // 这是一个通知，可以忽略或处理
+            logger.debug(`Received notification from SSE server '${this.id}':`, response);
             this.emit("notification", response);
             return;
         }
 
         const request = this.pendingRequests.get(id);
         if (!request) {
-            logger.warn(`Received response for unknown request ${id} from SSE server '${this.id}'`);
+            logger.warn(`Received response for unknown request ${id} from SSE server '${this.id}'. Response:`, response);
             return;
         }
 
@@ -281,7 +301,9 @@ export class SSEMCPServer extends EventEmitter implements IMCPServer {
         this.pendingRequests.delete(id);
 
         if (error) {
-            request.reject(new Error(error.message || "Unknown error"));
+            const errorMessage = error.message || error.code || "Unknown error";
+            logger.error(`Request ${id} failed for SSE server '${this.id}':`, error);
+            request.reject(new Error(errorMessage));
         } else {
             request.resolve(result);
         }
@@ -323,11 +345,40 @@ export class SSEMCPServer extends EventEmitter implements IMCPServer {
     }
 
     /**
+     * 发送通知（无响应的请求）
+     */
+    private async sendNotification(method: string, params?: any): Promise<void> {
+        if (!this.isConnected()) {
+            throw new Error(`SSE server '${this.id}' is not connected`);
+        }
+
+        const request = {
+            jsonrpc: "2.0",
+            method,
+            params,
+        };
+
+        // 通知不需要ID，也不需要等待响应
+        await this.sendHttpRequest(request);
+    }
+
+    /**
      * 发送HTTP请求
      */
     private async sendHttpRequest(request: any): Promise<void> {
         try {
-            const response = await fetch(this.config.url, {
+            if (!this.messageEndpoint) {
+                throw new Error(`Message endpoint not available for SSE server '${this.id}'`);
+            }
+
+            // 构建完整的消息URL
+            const baseUrl = new URL(this.config.url);
+            const messageUrl = new URL(this.messageEndpoint, baseUrl.origin);
+
+            logger.debug(`Sending HTTP request to SSE server '${this.id}' at URL: ${messageUrl.toString()}`);
+            logger.debug(`Request body:`, JSON.stringify(request, null, 2));
+
+            const response = await fetch(messageUrl.toString(), {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -337,8 +388,11 @@ export class SSEMCPServer extends EventEmitter implements IMCPServer {
             });
 
             if (!response.ok) {
+                logger.error(`HTTP error ${response.status} ${response.statusText} from SSE server '${this.id}'`);
                 throw new Error(`HTTP error: ${response.status} ${response.statusText}`);
             }
+
+            logger.debug(`HTTP request sent successfully to SSE server '${this.id}'`);
 
             // 响应将通过SSE接收，这里不需要处理返回内容
 
@@ -353,12 +407,53 @@ export class SSEMCPServer extends EventEmitter implements IMCPServer {
      */
     private async waitForReady(): Promise<void> {
         try {
+            // 临时设置debug日志级别
+            logger.setLevel("debug");
+
+            // 等待messageEndpoint就绪
+            const maxWaitTime = 10000; // 最多等待10秒
+            const startTime = Date.now();
+
+            logger.debug(`Waiting for message endpoint for SSE server '${this.id}'...`);
+
+            while (!this.messageEndpoint && Date.now() - startTime < maxWaitTime) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+
+            if (!this.messageEndpoint) {
+                throw new Error(`Failed to receive message endpoint for SSE server '${this.id}'`);
+            }
+
+            logger.debug(`Message endpoint received: ${this.messageEndpoint}`);
+
+            // 首先发送初始化请求
+            logger.debug(`Sending initialize request to SSE server '${this.id}'...`);
+            await this.sendRequest("initialize", {
+                protocolVersion: "2024-11-05",
+                capabilities: {
+                    tools: {},
+                    resources: {},
+                    prompts: {}
+                },
+                clientInfo: {
+                    name: "mcps-proxy",
+                    version: "1.0.1"
+                }
+            });
+
+            // 发送initialized通知
+            logger.debug(`Sending initialized notification to SSE server '${this.id}'...`);
+            await this.sendNotification("initialized");
+
             // 尝试获取工具列表来验证连接
+            logger.debug(`Sending tools/list request to SSE server '${this.id}'...`);
             await this.sendRequest("tools/list", {});
 
             // 更新工具数量
             const toolsResult = await this.listTools();
             this.status.toolCount = toolsResult.tools.length;
+
+            logger.debug(`SSE server '${this.id}' is ready with ${this.status.toolCount} tools`);
 
         } catch (error) {
             logger.error(`SSE server '${this.id}' not ready:`, error);
