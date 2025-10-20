@@ -59,7 +59,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/vtxf/mcps-proxy.git"
+    "url": "git+https://github.com/vtxf/mcps-proxy.git"
   },
   "homepage": "https://github.com/vtxf/mcps-proxy#readme"
 }
