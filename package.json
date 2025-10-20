@@ -1,6 +1,6 @@
 {
   "name": "mcps-proxy",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A proxy tool for MCP (Model Context Protocol) servers",
   "main": "dist/app.js",
   "bin": {
