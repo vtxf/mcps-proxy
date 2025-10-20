@@ -13,7 +13,7 @@ mcps-proxy 使用JSON格式的配置文件来管理MCP服务器设置。配置�
   "$schema": "./schema/config.schema.json",
   "server": {
     "port": 3095,
-    "host": "0.0.0.0",
+    "host": "127.0.0.1",
     "cors": { ... }
   },
   "schemas": {
@@ -31,7 +31,7 @@ mcps-proxy 使用JSON格式的配置文件来管理MCP服务器设置。配置�
 | 字段 | 类型 | 必需 | 默认值 | 描述 |
 |------|------|------|--------|------|
 | port | number | 是 | 3095 | HTTP服务器端口 |
-| host | string | 否 | "0.0.0.0" | HTTP服务器主机地址 |
+| host | string | 否 | "127.0.0.1" | HTTP服务器主机地址 |
 | cors | object | 否 | - | CORS配置 |
 
 #### CORS配置

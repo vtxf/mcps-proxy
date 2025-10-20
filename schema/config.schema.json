@@ -31,7 +31,7 @@
           "type": "string",
           "description": "HTTP server host address",
           "format": "hostname",
-          "default": "0.0.0.0"
+          "default": "127.0.0.1"
         },
         "cors": {
           "type": "object",

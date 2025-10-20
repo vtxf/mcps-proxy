@@ -148,7 +148,7 @@ export class ConfigLoader {
             $schema: "./schema/config.schema.json",
             server: {
                 port: 3095,
-                host: "0.0.0.0",
+                host: "127.0.0.1",
                 cors: {
                     enabled: true,
                     origins: ["*"],

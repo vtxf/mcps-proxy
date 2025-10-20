@@ -126,7 +126,7 @@ export class Application {
             status: "running",
             server: {
                 port: this.config.server.port,
-                host: this.config.server.host || "0.0.0.0",
+                host: this.config.server.host || "127.0.0.1",
                 uptime: process.uptime(),
             },
             schemas,

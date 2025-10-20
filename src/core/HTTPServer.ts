@@ -33,7 +33,7 @@ export class HTTPServer {
 
         return new Promise((resolve, reject) => {
             try {
-                this.server = this.app.listen(actualPort, this.config.host || "0.0.0.0", () => {
+                this.server = this.app.listen(actualPort, this.config.host || "127.0.0.1", () => {
                     const address = this.server?.address();
                     const host = address && typeof address === "object" ? address.address : "localhost";
                     const port = address && typeof address === "object" ? address.port : actualPort;

@@ -100,7 +100,7 @@ export interface ConfigValidationResult {
 export const DEFAULT_CONFIG: Partial<Config> = {
     server: {
         port: 3095,
-        host: "0.0.0.0",
+        host: "127.0.0.1",
         cors: {
             enabled: true,
             origins: ["*"],
