@@ -53,12 +53,17 @@ export class HTTPMCPServer implements IMCPServer {
             // 测试连接
             await this.testConnection();
 
-            // 获取工具数量
-            const toolsResult = await this.listTools();
-            this.status.toolCount = toolsResult.tools.length;
-
+            // 连接测试成功，更新状态
             this.updateStatus("connected");
             logger.info(`HTTP server '${this.id}' connected successfully`);
+
+            // 获取工具数量
+            try {
+                const toolsResult = await this.listTools();
+                this.status.toolCount = toolsResult.tools.length;
+            } catch (error) {
+                logger.warn(`Failed to get tools list for '${this.id}': ${error instanceof Error ? error.message : 'Unknown error'}`);
+            }
 
         } catch (error) {
             this.updateStatus("error", error instanceof Error ? error.message : "Unknown error");
@@ -154,7 +159,7 @@ export class HTTPMCPServer implements IMCPServer {
     private async testConnection(): Promise<void> {
         try {
             // 发送一个简单的请求来测试连接
-            await this.sendRequest("tools/list", {}, 5000);
+            await this.sendRequestForTest("tools/list", {}, 5000);
         } catch (error) {
             throw new Error(`Connection test failed: ${error}`);
         }
@@ -168,6 +173,20 @@ export class HTTPMCPServer implements IMCPServer {
             throw new Error(`HTTP server '${this.id}' is not connected`);
         }
 
+        return this.sendRequestInternal(method, params, timeout);
+    }
+
+    /**
+     * 发送HTTP请求（用于测试连接，不检查连接状态）
+     */
+    private async sendRequestForTest(method: string, params: any, timeout?: number): Promise<any> {
+        return this.sendRequestInternal(method, params, timeout);
+    }
+
+    /**
+     * 内部HTTP请求发送方法
+     */
+    private async sendRequestInternal(method: string, params: any, timeout?: number): Promise<any> {
         const id = this.requestId++;
         const request = {
             jsonrpc: "2.0",
@@ -180,12 +199,16 @@ export class HTTPMCPServer implements IMCPServer {
         const timeoutId = setTimeout(() => controller.abort(), timeout || this.config.timeout || 10000);
 
         try {
+            // 设置默认请求头，包括Accept要求
+            const headers = {
+                "Content-Type": "application/json",
+                "Accept": "application/json, text/event-stream",
+                ...this.config.headers,
+            };
+
             const response = await fetch(this.config.url, {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    ...this.config.headers,
-                },
+                headers,
                 body: JSON.stringify(request),
                 signal: controller.signal,
             });
@@ -202,11 +225,22 @@ export class HTTPMCPServer implements IMCPServer {
                 throw new Error("Empty response from server");
             }
 
+            // 处理SSE格式的响应
+            let jsonData = responseText;
+
+            // 如果响应包含SSE格式，提取JSON数据
+            if (responseText.includes('data:') && responseText.includes('event:')) {
+                const dataMatch = responseText.match(/data:({.*})/);
+                if (dataMatch && dataMatch[1]) {
+                    jsonData = dataMatch[1];
+                }
+            }
+
             let responseData;
             try {
-                responseData = JSON.parse(responseText);
+                responseData = JSON.parse(jsonData);
             } catch (parseError) {
-                throw new Error(`Invalid JSON response: ${responseText}`);
+                throw new Error(`Invalid JSON response: ${jsonData}`);
             }
 
             if (responseData.error) {
