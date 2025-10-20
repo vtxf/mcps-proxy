@@ -32,7 +32,8 @@ export function transformMcpConfigForWindows(config: Config): Config {
     // 遍历所有MCP服务器配置
     for (const [serverName, serverConfig] of Object.entries(schemaConfig.mcpServers)) {
       // 只处理stdio类型的服务器配置
-      if (serverConfig.type === 'stdio') {
+      const { type = 'stdio' } = serverConfig
+      if (type === 'stdio') {
         const stdioConfig = serverConfig as StdioServerConfig;
 
         // 检查是否需要转换（通常是需要为npx、node等命令添加前缀）
