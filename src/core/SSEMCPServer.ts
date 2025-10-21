@@ -271,7 +271,7 @@ export class SSEMCPServer extends EventEmitter implements IMCPServer {
             this.handleResponse(message);
 
         } catch (error) {
-            logger.error(`Failed to handle SSE message from server '${this.id}'. Raw data:`, event.data, error);
+            logger.error(`Failed to handle SSE message from server '${this.id}'. Raw data:`, { rawData: event.data, error });
         }
     }
 
