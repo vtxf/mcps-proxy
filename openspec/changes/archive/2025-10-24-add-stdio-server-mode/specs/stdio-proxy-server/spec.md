@@ -2,8 +2,8 @@
 
 ## ADDED Requirements
 
-### REQ-1: 命令行模式选择
-应用程序应当支持通过命令行参数选择运行模式。
+### Requirement: REQ-1 - 命令行模式选择
+应用程序 SHALL 支持通过命令行参数选择运行模式。
 
 #### Scenario: 默认HTTP模式
 **当** 用户执行 `mcps-proxy` 或 `mcps-proxy --http` 时
@@ -23,8 +23,8 @@
 **并且** 应当仅初始化名为"workspace"的schema
 **并且** 应当监听标准输入以接收JSON-RPC请求
 
-### REQ-2: STDIO模式JSON-RPC协议支持
-STDIO代理服务器应当完全支持JSON-RPC 2.0协议。
+### Requirement: REQ-2 - STDIO模式JSON-RPC协议支持
+STDIO代理服务器 SHALL 完全支持JSON-RPC 2.0协议。
 
 #### Scenario: 处理工具调用请求
 **当** 客户端通过stdin发送tools/call请求时
@@ -44,8 +44,8 @@ STDIO代理服务器应当完全支持JSON-RPC 2.0协议。
 **并且** 应当从当前schema中相应的MCP服务器获取提示
 **并且** 应当将提示内容通过stdout返回给客户端
 
-### REQ-3: Schema初始化策略
-应用程序应当根据运行模式采用不同的schema初始化策略。
+### Requirement: REQ-3 - Schema初始化策略
+应用程序 SHALL 根据运行模式采用不同的schema初始化策略。
 
 #### Scenario: HTTP模式Schema初始化
 **当** 应用程序以HTTP模式启动时
@@ -65,8 +65,8 @@ STDIO代理服务器应当完全支持JSON-RPC 2.0协议。
 **并且** 应当显示明确的错误信息
 **并且** 应当退出并返回非零状态码
 
-### REQ-4: 命令行参数解析
-CLI应当正确解析新的命令行参数。
+### Requirement: REQ-4 - 命令行参数解析
+CLI SHALL 正确解析新的命令行参数。
 
 #### Scenario: 基本参数解析
 **当** 用户执行 `mcps-proxy --stdio` 时
@@ -84,8 +84,8 @@ CLI应当正确解析新的命令行参数。
 **那么** CLI应当显示错误信息
 **并且** 应当退出并返回非零状态码
 
-### REQ-5: 配置系统扩展
-配置系统应当扩展以支持CLI模式相关配置。
+### Requirement: REQ-5 - 配置系统扩展
+配置系统 SHALL 扩展以支持CLI模式相关配置。
 
 #### Scenario: CLI配置加载
 **当** 加载配置文件时
@@ -99,64 +99,64 @@ CLI应当正确解析新的命令行参数。
 **并且** 应当记录警告日志
 **并且** 不应该阻止应用启动
 
-## MODIFIED Requirements
+## ADDED Requirements (续)
 
-### REQ-6: 应用程序架构重构
-应用程序的架构应当重构以支持模式选择。
+### Requirement: REQ-6 - 应用程序架构扩展
+应用程序 SHALL 扩展架构以支持模式选择。
 
 #### Scenario: 模式化构造
-**当** 创建Application实例时
-**那么** 构造函数应当接受运行模式参数
-**并且** 应当根据模式初始化不同的组件
-**并且** 应当避免创建不必要的服务器实例
+**当** 创建STDIO应用程序实例时
+**那么** 构造函数 SHALL 接受schema名称参数
+**并且** SHALL 仅初始化STDIO模式相关组件
+**并且** SHALL 避免创建HTTP服务器实例
 
 #### Scenario: 条件性Schema初始化
-**当** 应用程序启动时
-**那么** HTTP模式应当初始化所有schemas
-**并且** STDIO模式应当初始化指定schema
-**并且** 初始化逻辑应当统一管理
+**当** STDIO应用程序启动时
+**那么** SHALL 仅初始化命令行指定的schema
+**并且** SHALL 跳过其他schemas的初始化
+**并且** SHALL 提供清晰的初始化状态反馈
 
 #### Scenario: 服务器创建策略
-**当** 启动服务器时
-**那么** 应当根据运行模式创建相应的服务器实例
-**并且** HTTP模式创建HTTPServer
-**并且** STDIO模式创建StdioProxyServer
+**当** 启动STDIO服务器时
+**那么** SHALL 创建StdioProxyServer实例
+**并且** SHALL 配置JSON-RPC 2.0协议处理
+**并且** SHALL 设置标准输入输出监听
 
-### REQ-7: 命令行界面更新
-CLI界面应当更新以反映新的模式选择功能。
+### Requirement: REQ-7 - 命令行界面扩展
+CLI界面 SHALL 扩展以反映新的模式选择功能。
 
 #### Scenario: 帮助信息更新
 **当** 用户执行 `mcps-proxy --help` 时
-**那么** 帮助信息应当包含新的参数说明
-**并且** 应当显示STDIO模式的使用示例
-**并且** 应当说明schema参数的作用
+**那么** 帮助信息 SHALL 包含新的参数说明
+**并且** SHALL 显示STDIO模式的使用示例
+**并且** SHALL 说明schema参数的作用
 
 #### Scenario: 启动信息显示
-**当** 应用程序启动成功时
-**那么** HTTP模式应当显示URL和端口信息
-**并且** STDIO模式应当显示模式信息和schema名称
-**并且** 应当提供相应的使用提示
+**当** STDIO应用程序启动成功时
+**那么** SHALL 显示模式信息和当前schema名称
+**并且** SHALL 提供STDIO通信的使用提示
+**并且** SHALL 确认JSON-RPC 2.0协议就绪
 
 #### Scenario: 错误信息改进
-**当** 启动失败时
-**那么** 应当显示与模式相关的具体错误信息
-**并且** 应当提供解决建议
-**并且** 应当显示正确的使用示例
+**当** STDIO模式启动失败时
+**那么** SHALL 显示具体的错误信息
+**并且** SHALL 提供解决建议
+**并且** SHALL 显示正确的使用示例
 
-### REQ-8: 测试策略调整
-测试策略应当调整以覆盖新的模式选择功能。
+### Requirement: REQ-8 - 测试策略扩展
+测试策略 SHALL 扩展以覆盖新的模式选择功能。
 
 #### Scenario: 模式选择测试
 **当** 测试CLI功能时
-**那么** 应当测试各种参数组合
-**并且** 应当验证模式选择的正确性
-**并且** 应该测试错误参数的处理
+**那么** SHALL 测试各种参数组合
+**并且** SHALL 验证模式选择的正确性
+**并且** SHALL 测试错误参数的处理
 
 #### Scenario: Schema隔离测试
 **当** 测试STDIO模式时
-**那么** 应当验证仅初始化指定schema
-**并且** 应当测试schema不存在的错误处理
-**并且** 应该验证schema隔离的正确性
+**那么** SHALL 验证仅初始化指定schema
+**并且** SHALL 测试schema不存在的错误处理
+**并且** SHALL 验证schema隔离的正确性
 
 ## Technical Implementation Details
 
