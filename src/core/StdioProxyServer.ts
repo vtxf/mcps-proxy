@@ -225,6 +225,39 @@ export class StdioProxyServer {
         const methodName = method.replace("/", ".");
 
         switch (method) {
+            case "initialize":
+                // 处理MCP初始化请求
+                logger.info("Handling MCP initialize request", params);
+
+                // 根据MCP协议规范返回初始化响应
+                return {
+                    protocolVersion: "2025-06-18",
+                    capabilities: {
+                        // 声明服务器支持的能力
+                        tools: {
+                            listChanged: true
+                        },
+                        resources: {
+                            subscribe: false, // 暂不支持资源订阅
+                            listChanged: true
+                        },
+                        prompts: {
+                            listChanged: true
+                        },
+                        logging: {} // 支持日志功能
+                    },
+                    serverInfo: {
+                        name: "mcps-proxy",
+                        version: "1.1.0"
+                    },
+                    instructions: "MCP Proxy Server - 提供多个MCP服务的统一访问接口，支持工具调用、资源读取和提示模板功能。"
+                };
+
+            case "notifications/initialized":
+                // 处理初始化完成通知，无需返回内容
+                logger.info("Received initialized notification");
+                return {};
+
             case "tools/list":
                 return await this.connectionManager.listTools(this.currentSchema);
 
