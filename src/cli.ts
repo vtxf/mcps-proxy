@@ -6,7 +6,8 @@
  */
 
 import { configLoader } from "./utils/ConfigLoader";
-import { Application } from "./app";
+import { HTTPApplication } from "./HTTPApplication";
+import { STDIOApplication } from "./STDIOApplication";
 import { logger } from "./utils/Logger";
 
 interface CLIOptions {
@@ -21,7 +22,8 @@ interface CLIOptions {
 }
 
 class CLI {
-    private application?: Application;
+    private httpApplication?: HTTPApplication;
+    private stdioApplication?: STDIOApplication;
 
     /**
      * 解析模式相关参数
@@ -182,9 +184,16 @@ For more information, visit: https://github.com/vtxf/mcps-proxy
         console.log("正在关闭 mcps-proxy...");
 
         try {
-            if (this.application) {
-                await this.application.stop();
+            const shutdownPromises: Promise<void>[] = [];
+
+            if (this.httpApplication) {
+                shutdownPromises.push(this.httpApplication.stop());
             }
+            if (this.stdioApplication) {
+                shutdownPromises.push(this.stdioApplication.stop());
+            }
+
+            await Promise.all(shutdownPromises);
             console.log("mcps-proxy 已安全关闭");
             process.exit(0);
         } catch (error) {
@@ -244,9 +253,9 @@ For more information, visit: https://github.com/vtxf/mcps-proxy
                 logger.info(`Environment: ${process.env.NODE_ENV}`);
             }
 
-            // 创建并启动应用
-            this.application = new Application(config, "http");
-            await this.application.start();
+            // 创建并启动HTTP应用
+            this.httpApplication = new HTTPApplication(config);
+            await this.httpApplication.start();
 
             // 显示启动信息
             console.log(`\n🚀 mcps-proxy HTTP模式启动成功!`);
@@ -276,13 +285,14 @@ For more information, visit: https://github.com/vtxf/mcps-proxy
                 logger.info(`Environment: ${process.env.NODE_ENV}`);
             }
 
-            // 创建并启动应用
-            this.application = new Application(config, "stdio");
-            await this.application.start(options.schema || "default");
+            // 创建并启动STDIO应用
+            const schemaName = options.schema || "default";
+            this.stdioApplication = new STDIOApplication(config, schemaName);
+            await this.stdioApplication.start();
 
             // 显示启动信息
             console.log(`\n🚀 mcps-proxy STDIO模式启动成功!`);
-            console.log(`📋 Schema: ${options.schema || "default"}`);
+            console.log(`📋 Schema: ${schemaName}`);
             console.log(`🔗 JSON-RPC协议通过stdin/stdout通信`);
             console.log(`🛑 按 Ctrl+C 停止服务\n`);
 
