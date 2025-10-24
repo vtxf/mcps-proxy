@@ -42,6 +42,7 @@ export class StdioProxyServer {
         timeout: NodeJS.Timeout;
     }> = new Map();
     private currentSchema: string = "default";
+    private handleJsonRpcRequests: boolean = false;
 
     constructor(connectionManager: MCPConnectionManager, config?: STDIOConfig) {
         this.connectionManager = connectionManager;
@@ -66,10 +67,17 @@ export class StdioProxyServer {
         try {
             logger.info("Starting STDIO proxy server...");
 
-            // 设置输入输出监听
+            this.isRunning = true;
+
+            // 先设置监听器，但不立即开始处理请求
             this.setupInputListeners();
 
-            this.isRunning = true;
+            // 延迟一段时间后才开始处理JSON-RPC请求
+            // 这样避免将启动过程中的日志误认为是JSON-RPC请求
+            setTimeout(() => {
+                this.setupRequestHandling();
+            }, 2000); // 等待2秒让MCP服务器完全启动
+
             logger.info("STDIO proxy server started successfully");
 
         } catch (error) {
@@ -135,7 +143,7 @@ export class StdioProxyServer {
 
         // 监听标准输入
         process.stdin.on("data", (data: Buffer) => {
-            this.handleInput(data.toString(this.config.encoding! as BufferEncoding));
+            this.handleRawInput(data.toString(this.config.encoding! as BufferEncoding));
         });
 
         // 处理输入结束
@@ -146,6 +154,25 @@ export class StdioProxyServer {
 
         // 恢复输入
         process.stdin.resume();
+    }
+
+    /**
+     * 设置请求处理
+     */
+    private setupRequestHandling(): void {
+        this.handleJsonRpcRequests = true;
+    }
+
+    /**
+     * 处理原始输入数据
+     */
+    private handleRawInput(input: string): void {
+        // 只在启动完成后才处理JSON-RPC请求
+        if (!this.handleJsonRpcRequests) {
+            return;
+        }
+
+        this.handleInput(input);
     }
 
     /**
