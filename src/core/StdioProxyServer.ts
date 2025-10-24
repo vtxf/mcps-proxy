@@ -4,6 +4,7 @@
  */
 
 import { MCPConnectionManager } from "./MCPConnectionManager";
+import { MCPMethodHandler } from "./MCPMethodHandler";
 import { logger } from "../utils/Logger";
 import { STDIOConfig } from "../types/ConfigTypes";
 
@@ -31,6 +32,7 @@ interface JSONRPCResponse {
 
 export class StdioProxyServer {
     private connectionManager: MCPConnectionManager;
+    private methodHandler: MCPMethodHandler;
     private config: STDIOConfig;
     private isRunning: boolean = false;
     private requestId: number = 1;
@@ -43,6 +45,7 @@ export class StdioProxyServer {
 
     constructor(connectionManager: MCPConnectionManager, config?: STDIOConfig) {
         this.connectionManager = connectionManager;
+        this.methodHandler = new MCPMethodHandler(connectionManager);
         this.config = {
             encoding: "utf8",
             delimiter: "\n",
@@ -219,75 +222,10 @@ export class StdioProxyServer {
     }
 
     /**
-     * 转发请求到MCPConnectionManager
+     * 转发请求到MCP处理器
      */
     private async forwardToMCPConnectionManager(method: string, params?: any): Promise<any> {
-        const methodName = method.replace("/", ".");
-
-        switch (method) {
-            case "initialize":
-                // 处理MCP初始化请求
-                logger.info("Handling MCP initialize request", params);
-
-                // 根据MCP协议规范返回初始化响应
-                return {
-                    protocolVersion: "2025-06-18",
-                    capabilities: {
-                        // 声明服务器支持的能力
-                        tools: {
-                            listChanged: true
-                        },
-                        resources: {
-                            subscribe: false, // 暂不支持资源订阅
-                            listChanged: true
-                        },
-                        prompts: {
-                            listChanged: true
-                        },
-                        logging: {} // 支持日志功能
-                    },
-                    serverInfo: {
-                        name: "mcps-proxy",
-                        version: "1.1.0"
-                    },
-                    instructions: "MCP Proxy Server - 提供多个MCP服务的统一访问接口，支持工具调用、资源读取和提示模板功能。"
-                };
-
-            case "notifications/initialized":
-                // 处理初始化完成通知，无需返回内容
-                logger.info("Received initialized notification");
-                return {};
-
-            case "tools/list":
-                return await this.connectionManager.listTools(this.currentSchema);
-
-            case "tools/call":
-                if (!params || !params.name) {
-                    throw new Error("Tool name is required");
-                }
-                return await this.connectionManager.callTool(this.currentSchema, params);
-
-            case "resources/list":
-                return await this.connectionManager.listResources(this.currentSchema);
-
-            case "resources/read":
-                if (!params || !params.uri) {
-                    throw new Error("Resource URI is required");
-                }
-                return await this.connectionManager.readResource(this.currentSchema, params);
-
-            case "prompts/list":
-                return await this.connectionManager.listPrompts(this.currentSchema);
-
-            case "prompts/get":
-                if (!params || !params.name) {
-                    throw new Error("Prompt name is required");
-                }
-                return await this.connectionManager.getPrompt(this.currentSchema, params);
-
-            default:
-                throw new Error(`Method not supported: ${method}`);
-        }
+        return await this.methodHandler.handleMethod(this.currentSchema, method, params);
     }
 
     /**
