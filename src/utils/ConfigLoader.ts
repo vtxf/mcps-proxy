@@ -157,6 +157,13 @@ export class ConfigLoader {
                     allowedHeaders: ["Content-Type", "Authorization"],
                 },
             },
+            cli: {
+                stdio: {
+                    encoding: "utf8",
+                    delimiter: "\n",
+                    timeout: 30000,
+                },
+            },
             schemas: {
                 default: {
                     enabled: true,
@@ -165,6 +172,36 @@ export class ConfigLoader {
                             type: "stdio",
                             command: "npx",
                             args: ["@modelcontextprotocol/server-filesystem", "."],
+                            env: {
+                                NODE_ENV: "production",
+                            },
+                            timeout: 30000,
+                            restart: true,
+                        },
+                    },
+                },
+                workspace: {
+                    enabled: true,
+                    mcpServers: {
+                        git: {
+                            type: "stdio",
+                            command: "npx",
+                            args: ["@modelcontextprotocol/server-git", "."],
+                            env: {
+                                NODE_ENV: "production",
+                            },
+                            timeout: 30000,
+                            restart: true,
+                        },
+                    },
+                },
+                tools: {
+                    enabled: true,
+                    mcpServers: {
+                        memory: {
+                            type: "stdio",
+                            command: "npx",
+                            args: ["@modelcontextprotocol/server-memory"],
                             env: {
                                 NODE_ENV: "production",
                             },
@@ -244,6 +281,12 @@ export class ConfigLoader {
             errors.push(...serverErrors);
         }
 
+        // 验证cli配置（可选）
+        if (config.cli) {
+            const cliErrors = this.validateCLIConfig(config.cli);
+            errors.push(...cliErrors);
+        }
+
         // 验证schemas配置
         if (!config.schemas) {
             errors.push({
@@ -293,6 +336,70 @@ export class ConfigLoader {
             errors.push({
                 path: "server.host",
                 message: "Host must be a string",
+            });
+        }
+
+        return errors;
+    }
+
+    /**
+     * 验证CLI配置
+     */
+    private validateCLIConfig(cli: any): ConfigValidationError[] {
+        const errors: ConfigValidationError[] = [];
+
+        if (typeof cli !== "object" || cli === null) {
+            errors.push({
+                path: "cli",
+                message: "CLI configuration must be an object",
+            });
+            return errors;
+        }
+
+        // 验证stdio配置（可选）
+        if (cli.stdio) {
+            const stdioErrors = this.validateSTDIOConfig(cli.stdio);
+            errors.push(...stdioErrors);
+        }
+
+        return errors;
+    }
+
+    /**
+     * 验证STDIO配置
+     */
+    private validateSTDIOConfig(stdio: any): ConfigValidationError[] {
+        const errors: ConfigValidationError[] = [];
+
+        if (typeof stdio !== "object" || stdio === null) {
+            errors.push({
+                path: "cli.stdio",
+                message: "STDIO configuration must be an object",
+            });
+            return errors;
+        }
+
+        // 验证encoding
+        if (stdio.encoding && typeof stdio.encoding !== "string") {
+            errors.push({
+                path: "cli.stdio.encoding",
+                message: "Encoding must be a string",
+            });
+        }
+
+        // 验证delimiter
+        if (stdio.delimiter && typeof stdio.delimiter !== "string") {
+            errors.push({
+                path: "cli.stdio.delimiter",
+                message: "Delimiter must be a string",
+            });
+        }
+
+        // 验证timeout
+        if (stdio.timeout && (typeof stdio.timeout !== "number" || stdio.timeout <= 0)) {
+            errors.push({
+                path: "cli.stdio.timeout",
+                message: "Timeout must be a positive number",
             });
         }
 

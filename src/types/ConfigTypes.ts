@@ -27,6 +27,18 @@ export interface LoggingConfig {
     console?: boolean;
 }
 
+// STDIO模式配置
+export interface STDIOConfig {
+    encoding?: string;  // 默认'utf8'
+    delimiter?: string; // 默认'\n'
+    timeout?: number;   // 请求超时时间
+}
+
+// 命令行配置
+export interface CLIConfig {
+    stdio?: STDIOConfig;
+}
+
 // STDIO类型MCP服务器配置
 export interface StdioServerConfig {
     type: "stdio";
@@ -72,6 +84,7 @@ export interface SchemaConfig {
 export interface Config {
     $schema?: string;
     server: ServerConfig;
+    cli?: CLIConfig;
     schemas: Record<string, SchemaConfig>;
     logging?: LoggingConfig;
 }
@@ -107,6 +120,13 @@ export const DEFAULT_CONFIG: Partial<Config> = {
             methods: ["GET", "POST", "OPTIONS"],
             credentials: false,
             allowedHeaders: ["Content-Type", "Authorization"],
+        },
+    },
+    cli: {
+        stdio: {
+            encoding: "utf8",
+            delimiter: "\n",
+            timeout: 30000,
         },
     },
     logging: {

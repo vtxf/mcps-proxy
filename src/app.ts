@@ -4,19 +4,22 @@
  */
 
 import { HTTPServer } from "./core/HTTPServer";
+import { StdioProxyServer } from "./core/StdioProxyServer";
 import { MCPConnectionManager } from "./core/MCPConnectionManager";
 import { configLoader } from "./utils/ConfigLoader";
 import { logger } from "./utils/Logger";
 import { Config } from "./types/ConfigTypes";
 
 export class Application {
-    private httpServer?: HTTPServer;
+    private server?: HTTPServer | StdioProxyServer;
     private connectionManager: MCPConnectionManager;
     private config: Config;
+    private mode: "http" | "stdio";
     private isRunning: boolean = false;
 
-    constructor(config: Config) {
+    constructor(config: Config, mode: "http" | "stdio") {
         this.config = config;
+        this.mode = mode;
         this.connectionManager = new MCPConnectionManager();
 
         // 配置日志器
@@ -24,27 +27,38 @@ export class Application {
             logger.configure(config.logging);
         }
 
-        logger.info("Application initialized");
+        logger.info(`Application initialized in ${mode} mode`);
     }
 
     /**
      * 启动应用程序
      */
-    public async start(): Promise<void> {
+    public async start(schemaName?: string): Promise<void> {
         if (this.isRunning) {
             logger.warn("Application is already running");
             return;
         }
 
         try {
-            logger.info("Starting mcps-proxy application...");
+            logger.info(`Starting mcps-proxy application in ${this.mode} mode...`);
 
-            // 初始化所有schemas
-            await this.initializeSchemas();
+            // 根据模式初始化schemas
+            if (this.mode === "stdio") {
+                await this.initializeSingleSchema(schemaName || "default");
+            } else {
+                await this.initializeAllSchemas();
+            }
 
-            // 创建并启动HTTP服务器
-            this.httpServer = new HTTPServer(this.connectionManager, this.config.server);
-            await this.httpServer.start();
+            // 根据模式创建并启动服务器
+            if (this.mode === "stdio") {
+                this.server = new StdioProxyServer(this.connectionManager, this.config.cli?.stdio);
+                logger.info("Created STDIO proxy server");
+            } else {
+                this.server = new HTTPServer(this.connectionManager, this.config.server);
+                logger.info("Created HTTP server");
+            }
+
+            await this.server.start();
 
             this.isRunning = true;
             logger.info("Application started successfully");
@@ -97,8 +111,10 @@ export class Application {
                 logger.configure(this.config.logging);
             }
 
-            // 重新初始化schemas
-            await this.initializeSchemas();
+            // 重新初始化schemas（仅HTTP模式支持配置重载）
+            if (this.mode === "http") {
+                await this.initializeAllSchemas();
+            }
 
             logger.info("Configuration reloaded successfully");
 
@@ -142,11 +158,11 @@ export class Application {
     }
 
     /**
-     * 初始化所有schemas
+     * 初始化所有schemas（HTTP模式）
      */
-    private async initializeSchemas(): Promise<void> {
+    private async initializeAllSchemas(): Promise<void> {
         const schemaNames = Object.keys(this.config.schemas);
-        logger.info(`Initializing ${schemaNames.length} schemas...`);
+        logger.info(`Initializing ${schemaNames.length} schemas for HTTP mode...`);
 
         for (const [schemaName, schemaConfig] of Object.entries(this.config.schemas)) {
             try {
@@ -157,7 +173,37 @@ export class Application {
             }
         }
 
-        logger.info("Schema initialization completed");
+        logger.info("All schemas initialization completed");
+    }
+
+    /**
+     * 初始化单个schema（STDIO模式）
+     */
+    private async initializeSingleSchema(schemaName: string): Promise<void> {
+        logger.info(`Initializing schema '${schemaName}' for STDIO mode...`);
+
+        // 检查schema是否存在
+        if (!this.config.schemas[schemaName]) {
+            const availableSchemas = Object.keys(this.config.schemas);
+            throw new Error(
+                `Schema '${schemaName}' not found. Available schemas: ${availableSchemas.join(", ")}`
+            );
+        }
+
+        const schemaConfig = this.config.schemas[schemaName];
+
+        // 检查schema是否启用
+        if (schemaConfig.enabled === false) {
+            throw new Error(`Schema '${schemaName}' is disabled in configuration`);
+        }
+
+        try {
+            await this.connectionManager.addSchema(schemaName, schemaConfig);
+            logger.info(`Schema '${schemaName}' initialized successfully`);
+        } catch (error) {
+            logger.error(`Failed to initialize schema '${schemaName}':`, error);
+            throw new Error(`Failed to initialize schema '${schemaName}': ${error instanceof Error ? error.message : String(error)}`);
+        }
     }
 
     /**
@@ -166,9 +212,9 @@ export class Application {
     private async cleanup(): Promise<void> {
         const cleanupTasks: Promise<void>[] = [];
 
-        // 停止HTTP服务器
-        if (this.httpServer) {
-            cleanupTasks.push(this.httpServer.stop());
+        // 停止服务器（HTTP或STDIO）
+        if (this.server) {
+            cleanupTasks.push(this.server.stop());
         }
 
         // 断开所有MCP连接

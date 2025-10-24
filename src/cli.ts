@@ -14,10 +14,24 @@ interface CLIOptions {
     config?: string;
     version?: boolean;
     help?: boolean;
+
+    // 新增参数
+    mode?: "http" | "stdio";
+    schema?: string;
 }
 
 class CLI {
     private application?: Application;
+
+    /**
+     * 解析模式相关参数
+     */
+    private parseModeArguments(options: CLIOptions): { mode: "http" | "stdio"; schema?: string } {
+        return {
+            mode: options.mode!,
+            schema: options.schema
+        };
+    }
 
     /**
      * 解析命令行参数
@@ -54,6 +68,31 @@ class CLI {
                     options.help = true;
                     break;
 
+                case "--http":
+                    if (options.mode) {
+                        console.error("Error: Cannot specify both --http and --stdio modes");
+                        process.exit(1);
+                    }
+                    options.mode = "http";
+                    break;
+
+                case "--stdio":
+                    if (options.mode) {
+                        console.error("Error: Cannot specify both --http and --stdio modes");
+                        process.exit(1);
+                    }
+                    options.mode = "stdio";
+                    break;
+
+                case "--schema":
+                    i++;
+                    if (!args[i]) {
+                        console.error("Error: --schema requires a schema name");
+                        process.exit(1);
+                    }
+                    options.schema = args[i];
+                    break;
+
                 default:
                     if (arg.startsWith("-")) {
                         console.error(`Error: Unknown option ${arg}`);
@@ -62,6 +101,17 @@ class CLI {
                     }
                     break;
             }
+        }
+
+        // 验证参数组合
+        if (options.schema && options.mode !== "stdio") {
+            console.error("Error: --schema can only be used with --stdio mode");
+            process.exit(1);
+        }
+
+        // 如果没有指定模式，默认为HTTP模式
+        if (!options.mode) {
+            options.mode = "http";
         }
 
         return options;
@@ -77,14 +127,23 @@ Usage: mcps-proxy [options]
 Options:
   --port <port>     指定服务端口 (默认: 3095)
   --config <path>   指定配置文件路径
+  --http            以HTTP模式运行 (默认)
+  --stdio           以STDIO模式运行
+  --schema <name>   指定STDIO模式使用的schema名称 (默认: default)
   --version         显示版本信息
   --help            显示帮助信息
 
 Examples:
-  mcps-proxy                                    # 使用默认配置启动
-  mcps-proxy --port 8080                       # 指定端口启动
-  mcps-proxy --config ./custom-config.json    # 使用自定义配置
-  mcps-proxy --port 3000 --config ./dev.json   # 自定义端口和配置
+  HTTP模式 (默认):
+    mcps-proxy                                    # 使用默认配置启动HTTP模式
+    mcps-proxy --http                             # 明确指定HTTP模式
+    mcps-proxy --port 8080                        # 指定端口启动HTTP模式
+    mcps-proxy --config ./custom-config.json     # 使用自定义配置
+
+  STDIO模式:
+    mcps-proxy --stdio                            # 启动STDIO模式，使用default schema
+    mcps-proxy --stdio --schema=workspace         # 启动STDIO模式，使用指定schema
+    mcps-proxy --stdio --schema=tools             # 启动STDIO模式，使用tools schema
 
 Environment:
   NODE_ENV                                    # 设置运行环境 (development/production)
@@ -94,9 +153,13 @@ Configuration:
   首次运行会自动创建默认配置文件
 
 API Endpoints:
-  健康检查:   GET /health
-  状态查询:   GET /api/status
-  MCP协议:    POST /api/{schema}/mcp
+  HTTP模式:
+    健康检查:   GET /health
+    状态查询:   GET /api/status
+    MCP协议:    POST /api/{schema}/mcp
+
+  STDIO模式:
+    JSON-RPC协议通过stdin/stdout通信
 
 For more information, visit: https://github.com/vtxf/mcps-proxy
         `);
@@ -116,7 +179,7 @@ For more information, visit: https://github.com/vtxf/mcps-proxy
      * 优雅地关闭应用
      */
     private async gracefulShutdown(): Promise<void> {
-        console.log("\n正在关闭 mcps-proxy...");
+        console.log("正在关闭 mcps-proxy...");
 
         try {
             if (this.application) {
@@ -136,31 +199,35 @@ For more information, visit: https://github.com/vtxf/mcps-proxy
     private setupSignalHandlers(): void {
         // 处理 Ctrl+C (SIGINT)
         process.on("SIGINT", () => {
+            console.log("\n收到中断信号，正在安全关闭...");
             this.gracefulShutdown();
         });
 
         // 处理 SIGTERM (通常由系统发送)
         process.on("SIGTERM", () => {
+            console.log("\n收到终止信号，正在安全关闭...");
             this.gracefulShutdown();
         });
 
         // 处理未捕获的异常
         process.on("uncaughtException", (error) => {
-            console.error("Uncaught Exception:", error);
+            console.error("未捕获的异常:", error);
+            console.log("正在安全关闭...");
             this.gracefulShutdown();
         });
 
         // 处理未处理的 Promise 拒绝
         process.on("unhandledRejection", (reason, promise) => {
-            console.error("Unhandled Rejection at:", promise, "reason:", reason);
+            console.error("未处理的Promise拒绝:", promise, "reason:", reason);
+            console.log("正在安全关闭...");
             this.gracefulShutdown();
         });
     }
 
     /**
-     * 启动应用程序
+     * 启动HTTP模式应用
      */
-    private async startApplication(options: CLIOptions): Promise<void> {
+    private async startHTTPMode(options: CLIOptions): Promise<void> {
         try {
             // 加载配置
             const config = configLoader.loadConfig({
@@ -178,15 +245,65 @@ For more information, visit: https://github.com/vtxf/mcps-proxy
             }
 
             // 创建并启动应用
-            this.application = new Application(config);
+            this.application = new Application(config, "http");
             await this.application.start();
 
             // 显示启动信息
-            console.log(`\n🚀 mcps-proxy 启动成功!`);
+            console.log(`\n🚀 mcps-proxy HTTP模式启动成功!`);
             console.log(`📍 服务地址: http://localhost:${config.server.port}`);
             console.log(`🔗 API端点: http://localhost:${config.server.port}/api/{schema}/mcp`);
             console.log(`📊 状态查询: http://localhost:${config.server.port}/api/status`);
             console.log(`🛑 按 Ctrl+C 停止服务\n`);
+
+        } catch (error) {
+            console.error("HTTP模式启动失败:", error);
+            process.exit(1);
+        }
+    }
+
+    /**
+     * 启动STDIO模式应用
+     */
+    private async startSTDIOMode(options: CLIOptions): Promise<void> {
+        try {
+            // 加载配置
+            const config = configLoader.loadConfig({
+                configPath: options.config,
+            });
+
+            // 设置环境变量
+            if (process.env.NODE_ENV) {
+                logger.info(`Environment: ${process.env.NODE_ENV}`);
+            }
+
+            // 创建并启动应用
+            this.application = new Application(config, "stdio");
+            await this.application.start(options.schema || "default");
+
+            // 显示启动信息
+            console.log(`\n🚀 mcps-proxy STDIO模式启动成功!`);
+            console.log(`📋 Schema: ${options.schema || "default"}`);
+            console.log(`🔗 JSON-RPC协议通过stdin/stdout通信`);
+            console.log(`🛑 按 Ctrl+C 停止服务\n`);
+
+        } catch (error) {
+            console.error("STDIO模式启动失败:", error);
+            process.exit(1);
+        }
+    }
+
+    /**
+     * 启动应用程序
+     */
+    private async startApplication(options: CLIOptions): Promise<void> {
+        try {
+            const { mode } = this.parseModeArguments(options);
+
+            if (mode === "stdio") {
+                await this.startSTDIOMode(options);
+            } else {
+                await this.startHTTPMode(options);
+            }
 
         } catch (error) {
             console.error("启动失败:", error);
