@@ -45,7 +45,7 @@
 ### ✅ 配置文件验证
 
 **package.json**: ✅ 通过
-- 项目名称: mcps-proxy v1.0.0
+- 项目名称: mcps-proxy v1.1.0
 - 构建脚本: tsc
 - Node.js版本要求: >=22.0.0
 - 依赖配置完整

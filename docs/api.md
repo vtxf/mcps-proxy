@@ -157,7 +157,7 @@ curl -X POST http://localhost:3095/api/default/mcp \
         "type": "text",
         "text": "{
   \"name\": \"my-package\",
-  \"version\": \"1.0.0\"
+  \"version\": \"1.1.0\"
 }"
       }
     ]

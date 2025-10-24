@@ -194,7 +194,7 @@ mcps-proxy --stdio --schema=workspace
     "content": [
       {
         "type": "text",
-        "text": "{\"name\": \"mcps-proxy\", \"version\": \"1.0.0\"}"
+        "text": "{\"name\": \"mcps-proxy\", \"version\": \"1.1.0\"}"
       }
     ]
   }
