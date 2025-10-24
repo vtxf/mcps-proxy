@@ -1,6 +1,6 @@
 # mcps-proxy
 
-A minimalist MCP (Model Context Protocol) server proxy tool that consolidates multiple independent MCP servers into a unified HTTP interface.
+A minimalist MCP (Model Context Protocol) server proxy tool that consolidates multiple independent MCP servers into unified HTTP and STDIO interfaces.
 
 [![npm version](https://badge.fury.io/js/mcps-proxy.svg)](https://badge.fury.io/js/mcps-proxy)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -26,13 +26,14 @@ A minimalist MCP (Model Context Protocol) server proxy tool that consolidates mu
 
 - 🚀 **Minimalist Design** - Lightweight proxy focused on core functionality with minimal dependencies
 - 🔌 **Multi-Server Support** - Connect to stdio, http, and sse type MCP servers simultaneously
-- 📡 **Unified Interface** - Access all MCP functionality through a single HTTP API
+- 📡 **Dual Interface Modes** - Access all MCP functionality through HTTP API **or** STDIO interface
 - 🌐 **CORS Support** - Cross-origin access support for easy web application integration
 - 📝 **Complete Logging** - Structured logging with file and console output support
 - 🔧 **Zero-Config Startup** - Auto-create default configuration on first run
 - 🔄 **Schema Management** - Multi-environment configuration with schema-level enable/disable control
 - 🛡️ **Error Handling** - Comprehensive error handling and reconnection mechanisms
 - 📊 **Status Monitoring** - Real-time monitoring of all MCP server statuses
+- ⚡ **Performance Optimized** - STDIO mode provides lower latency and reduced resource usage
 
 ## 🚀 Quick Start
 
@@ -48,6 +49,8 @@ npm install mcps-proxy
 
 ### Starting the Service
 
+#### HTTP Mode (Default)
+
 ```bash
 # Start with default configuration
 mcps-proxy
@@ -57,12 +60,24 @@ mcps-proxy --port 8080
 
 # Use custom configuration file
 mcps-proxy --config ./my-config.json
+```
+
+The service will be available at `http://localhost:3095` after startup.
+
+#### STDIO Mode
+
+```bash
+# Start STDIO mode with default schema
+mcps-proxy --stdio
+
+# Start STDIO mode with specific schema
+mcps-proxy --stdio --schema=workspace
 
 # View help
 mcps-proxy --help
 ```
 
-The service will be available at `http://localhost:3095` after startup.
+STDIO mode communicates via standard input/output using JSON-RPC 2.0 protocol, perfect for CLI tool integration and CI/CD pipelines.
 
 ## 📖 API Usage
 
@@ -73,7 +88,9 @@ All tools use the "server-id-tool-name" unified naming format, for example:
 - `git-commit`
 - `web-search-webSearchPrime`
 
-### Getting Tool List
+### HTTP API Usage
+
+#### Getting Tool List
 
 ```bash
 curl -X POST http://localhost:3095/api/default/mcp \
@@ -86,7 +103,7 @@ curl -X POST http://localhost:3095/api/default/mcp \
   }'
 ```
 
-### Calling Tools
+#### Calling Tools
 
 ```bash
 curl -X POST http://localhost:3095/api/default/mcp \
@@ -102,10 +119,111 @@ curl -X POST http://localhost:3095/api/default/mcp \
   }'
 ```
 
-### Status Query
+#### Status Query
 
 ```bash
 curl http://localhost:3095/api/status
+```
+
+### STDIO Interface Usage
+
+STDIO mode communicates via standard input/output using JSON-RPC 2.0 protocol. Here's how to use it:
+
+#### Start STDIO Mode
+
+```bash
+mcps-proxy --stdio --schema=workspace
+```
+
+#### Send Request via STDIN
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "tools/list",
+  "params": {},
+  "id": 1
+}
+```
+
+#### Receive Response via STDOUT
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "tools": [
+      {
+        "name": "git-commit",
+        "description": "Create a new commit",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "message": {"type": "string"},
+            "files": {"type": "array", "items": {"type": "string"}}
+          }
+        }
+      }
+    ]
+  }
+}
+```
+
+#### Tool Call Example
+
+**Input:**
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "tools/call",
+  "params": {
+    "name": "filesystem-read_file",
+    "arguments": {"path": "./package.json"}
+  },
+  "id": 2
+}
+```
+
+**Output:**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 2,
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"name\": \"mcps-proxy\", \"version\": \"1.0.0\"}"
+      }
+    ]
+  }
+}
+```
+
+#### Integration with Node.js
+
+```javascript
+const { spawn } = require('child_process');
+
+// Start STDIO mode
+const proxy = spawn('mcps-proxy', ['--stdio', '--schema=workspace']);
+
+// Send request
+const request = {
+  jsonrpc: "2.0",
+  method: "tools/list",
+  params: {},
+  id: 1
+};
+
+proxy.stdin.write(JSON.stringify(request) + '\n');
+
+// Receive response
+proxy.stdout.on('data', (data) => {
+  const response = JSON.parse(data.toString().trim());
+  console.log('Tools:', response.result.tools);
+});
 ```
 
 ## ⚙️ Configuration
@@ -120,6 +238,13 @@ Configuration file location: `~/.mcps-proxy/config.json`
     "port": 3095,
     "host": "0.0.0.0"
   },
+  "cli": {
+    "stdio": {
+      "encoding": "utf8",
+      "delimiter": "\n",
+      "timeout": 30000
+    }
+  },
   "schemas": {
     "default": {
       "enabled": true,
@@ -129,10 +254,27 @@ Configuration file location: `~/.mcps-proxy/config.json`
           "args": ["@modelcontextprotocol/server-filesystem", "."]
         }
       }
+    },
+    "workspace": {
+      "enabled": true,
+      "mcpServers": {
+        "git": {
+          "command": "npx",
+          "args": ["@modelcontextprotocol/server-git", "."]
+        }
+      }
     }
   }
 }
 ```
+
+### STDIO Mode Configuration
+
+The `cli.stdio` section controls STDIO mode behavior:
+
+- `encoding` - Character encoding for STDIO communication (default: "utf8")
+- `delimiter` - Message delimiter (default: "\n")
+- `timeout` - Request timeout in milliseconds (default: 30000)
 
 ### Supported MCP Server Types
 
@@ -221,7 +363,8 @@ src/
 │   ├── MCPConnectionManager.ts # MCP connection management
 │   ├── StdioMCPServer.ts    # STDIO type MCP server
 │   ├── HTTPMCPServer.ts     # HTTP type MCP server
-│   └── SSEMCPServer.ts      # SSE type MCP server
+│   ├── SSEMCPServer.ts      # SSE type MCP server
+│   └── StdioProxyServer.ts  # STDIO proxy server (new)
 ├── types/                   # Type definitions
 │   ├── MCPTypes.ts          # MCP protocol types
 │   └── ConfigTypes.ts       # Configuration types
@@ -231,8 +374,11 @@ src/
 ├── interfaces/              # Interface definitions
 │   ├── IMCPServer.ts        # MCP server interface
 │   └── IHTTPRouter.ts       # HTTP router interface
-├── app.ts                   # Application entry point
-└── cli.ts                   # Command line interface
+├── applications/            # Application modes
+│   ├── HTTPApplication.ts   # HTTP mode application (new)
+│   └── STDIOApplication.ts  # STDIO mode application (new)
+├── app.ts                   # Legacy application entry point
+└── cli.ts                   # Command line interface (updated)
 
 tests/                       # Test files
 ├── unit/                    # Unit tests
@@ -240,10 +386,17 @@ tests/                       # Test files
 
 docs/                        # Documentation
 ├── configuration.md         # Configuration documentation
-└── api.md                   # API documentation
+├── api.md                   # API documentation
+└── stdio-mode.md           # STDIO mode guide (new)
 
 schema/                      # JSON Schema
-└── config.schema.json       # Configuration file schema
+└── config.schema.json       # Configuration file schema (updated)
+
+openspec/                    # OpenSpec specifications
+├── specs/                   # Active specifications
+│   └── stdio-proxy-server/  # STDIO proxy server spec
+└── changes/                 # Change proposals
+    └── archive/             # Archived changes
 ```
 
 ## 🌐 API Documentation
@@ -251,15 +404,24 @@ schema/                      # JSON Schema
 For detailed API documentation, please refer to:
 - [API Interface Documentation](docs/api.md)
 - [Configuration Documentation](docs/configuration.md)
+- [STDIO Mode Guide](docs/stdio-mode.md) - **New!**
 
-### Main Endpoints
+### HTTP API Endpoints
 
 - `GET /health` - Health check
 - `GET /api/status` - Status query
 - `POST /api/{schema}/mcp` - MCP protocol endpoint
 
+### STDIO Interface
+
+- **Protocol**: JSON-RPC 2.0
+- **Input**: Standard input (stdin)
+- **Output**: Standard output (stdout)
+- **Communication**: Line-delimited JSON messages
+
 ### Supported MCP Methods
 
+Both HTTP and STDIO modes support all MCP methods:
 - `tools/list` - Get tool list
 - `tools/call` - Call tool
 - `resources/list` - Get resource list

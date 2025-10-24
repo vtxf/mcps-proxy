@@ -1,7 +1,7 @@
 {
   "name": "mcps-proxy",
   "version": "1.0.2",
-  "description": "A proxy tool for MCP (Model Context Protocol) servers",
+  "description": "A minimalist MCP (Model Context Protocol) server proxy tool with HTTP and STDIO interface support",
   "main": "dist/app.js",
   "bin": {
     "mcps-proxy": "dist/cli.js"
@@ -9,11 +9,17 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/cli.js",
+    "start:http": "node dist/cli.js --http",
+    "start:stdio": "node dist/cli.js --stdio",
     "dev": "tsx src/cli.ts",
+    "dev:http": "tsx src/cli.ts --http",
+    "dev:stdio": "tsx src/cli.ts --stdio --schema=default",
     "watch": "nodemon --exec tsx src/cli.ts",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
+    "test:integration": "jest --testPathPattern=integration",
+    "test:stdio": "jest --testNamePattern=STDIO",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
     "format": "prettier --write src/**/*.ts",
@@ -54,7 +60,13 @@
     "proxy",
     "model-context-protocol",
     "api",
-    "server"
+    "server",
+    "stdio",
+    "http",
+    "cli",
+    "json-rpc",
+    "automation",
+    "tools"
   ],
   "author": "vtxf <vtxf@qq.com>",
   "license": "MIT",

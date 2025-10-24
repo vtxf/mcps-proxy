@@ -1,6 +1,6 @@
 # mcps-proxy
 
-一个极简的MCP（Model Context Protocol）服务器代理工具，将多个独立的MCP服务器合并成一个统一的HTTP接口。
+一个极简的MCP（Model Context Protocol）服务器代理工具，将多个独立的MCP服务器合并成统一的HTTP和STDIO接口。
 
 [![npm version](https://badge.fury.io/js/mcps-proxy.svg)](https://badge.fury.io/js/mcps-proxy)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -26,13 +26,14 @@
 
 - 🚀 **极简设计** - 轻量级代理，专注核心功能，最小依赖
 - 🔌 **多服务器支持** - 同时连接stdio、http、sse三种类型的MCP服务器
-- 📡 **统一接口** - 通过HTTP API访问所有MCP功能
+- 📡 **双接口模式** - 通过HTTP API或STDIO接口访问所有MCP功能
 - 🌐 **CORS支持** - 支持跨域访问，便于Web应用集成
 - 📝 **完整日志** - 结构化日志记录，支持文件和控制台输出
 - 🔧 **零配置启动** - 首次运行自动创建默认配置
 - 🔄 **Schema管理** - 支持多环境配置，schema级别的启用/禁用控制
 - 🛡️ **错误处理** - 完善的错误处理和重连机制
 - 📊 **状态监控** - 实时监控所有MCP服务器状态
+- ⚡ **性能优化** - STDIO模式提供更低延迟和更少资源占用
 
 ## 🚀 快速开始
 
@@ -48,6 +49,8 @@ npm install mcps-proxy
 
 ### 启动服务
 
+#### HTTP模式（默认）
+
 ```bash
 # 使用默认配置启动
 mcps-proxy
@@ -57,12 +60,24 @@ mcps-proxy --port 8080
 
 # 使用自定义配置文件
 mcps-proxy --config ./my-config.json
+```
+
+服务启动后将在 `http://localhost:3095` 提供API服务。
+
+#### STDIO模式
+
+```bash
+# 启动STDIO模式，使用默认schema
+mcps-proxy --stdio
+
+# 启动STDIO模式，使用指定schema
+mcps-proxy --stdio --schema=workspace
 
 # 查看帮助
 mcps-proxy --help
 ```
 
-服务启动后将在 `http://localhost:3095` 提供API服务。
+STDIO模式通过标准输入输出使用JSON-RPC 2.0协议通信，完美适配CLI工具集成和CI/CD流水线。
 
 ## 📖 API 使用
 
@@ -73,7 +88,9 @@ mcps-proxy --help
 - `git-commit`
 - `web-search-webSearchPrime`
 
-### 获取工具列表
+### HTTP API 使用
+
+#### 获取工具列表
 
 ```bash
 curl -X POST http://localhost:3095/api/default/mcp \
@@ -86,7 +103,7 @@ curl -X POST http://localhost:3095/api/default/mcp \
   }'
 ```
 
-### 调用工具
+#### 调用工具
 
 ```bash
 curl -X POST http://localhost:3095/api/default/mcp \
@@ -102,10 +119,111 @@ curl -X POST http://localhost:3095/api/default/mcp \
   }'
 ```
 
-### 状态查询
+#### 状态查询
 
 ```bash
 curl http://localhost:3095/api/status
+```
+
+### STDIO 接口使用
+
+STDIO模式通过标准输入输出使用JSON-RPC 2.0协议通信。使用方法如下：
+
+#### 启动STDIO模式
+
+```bash
+mcps-proxy --stdio --schema=workspace
+```
+
+#### 通过STDIN发送请求
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "tools/list",
+  "params": {},
+  "id": 1
+}
+```
+
+#### 通过STDOUT接收响应
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "tools": [
+      {
+        "name": "git-commit",
+        "description": "创建新提交",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "message": {"type": "string"},
+            "files": {"type": "array", "items": {"type": "string"}}
+          }
+        }
+      }
+    ]
+  }
+}
+```
+
+#### 工具调用示例
+
+**输入：**
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "tools/call",
+  "params": {
+    "name": "filesystem-read_file",
+    "arguments": {"path": "./package.json"}
+  },
+  "id": 2
+}
+```
+
+**输出：**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 2,
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"name\": \"mcps-proxy\", \"version\": \"1.0.0\"}"
+      }
+    ]
+  }
+}
+```
+
+#### Node.js 集成示例
+
+```javascript
+const { spawn } = require('child_process');
+
+// 启动STDIO模式
+const proxy = spawn('mcps-proxy', ['--stdio', '--schema=workspace']);
+
+// 发送请求
+const request = {
+  jsonrpc: "2.0",
+  method: "tools/list",
+  params: {},
+  id: 1
+};
+
+proxy.stdin.write(JSON.stringify(request) + '\n');
+
+// 接收响应
+proxy.stdout.on('data', (data) => {
+  const response = JSON.parse(data.toString().trim());
+  console.log('工具列表:', response.result.tools);
+});
 ```
 
 ## ⚙️ 配置
@@ -120,6 +238,13 @@ curl http://localhost:3095/api/status
     "port": 3095,
     "host": "0.0.0.0"
   },
+  "cli": {
+    "stdio": {
+      "encoding": "utf8",
+      "delimiter": "\n",
+      "timeout": 30000
+    }
+  },
   "schemas": {
     "default": {
       "enabled": true,
@@ -129,10 +254,27 @@ curl http://localhost:3095/api/status
           "args": ["@modelcontextprotocol/server-filesystem", "."]
         }
       }
+    },
+    "workspace": {
+      "enabled": true,
+      "mcpServers": {
+        "git": {
+          "command": "npx",
+          "args": ["@modelcontextprotocol/server-git", "."]
+        }
+      }
     }
   }
 }
 ```
+
+### STDIO模式配置
+
+`cli.stdio` 部分控制STDIO模式的行为：
+
+- `encoding` - STDIO通信的字符编码（默认："utf8"）
+- `delimiter` - 消息分隔符（默认："\n"）
+- `timeout` - 请求超时时间，毫秒（默认：30000）
 
 ### 支持的MCP服务器类型
 
@@ -221,7 +363,8 @@ src/
 │   ├── MCPConnectionManager.ts # MCP连接管理
 │   ├── StdioMCPServer.ts    # STDIO类型MCP服务器
 │   ├── HTTPMCPServer.ts     # HTTP类型MCP服务器
-│   └── SSEMCPServer.ts      # SSE类型MCP服务器
+│   ├── SSEMCPServer.ts      # SSE类型MCP服务器
+│   └── StdioProxyServer.ts  # STDIO代理服务器（新增）
 ├── types/                   # 类型定义
 │   ├── MCPTypes.ts          # MCP协议类型
 │   └── ConfigTypes.ts       # 配置类型
@@ -231,8 +374,11 @@ src/
 ├── interfaces/              # 接口定义
 │   ├── IMCPServer.ts        # MCP服务器接口
 │   └── IHTTPRouter.ts       # HTTP路由接口
-├── app.ts                   # 应用程序入口
-└── cli.ts                   # 命令行接口
+├── applications/            # 应用模式
+│   ├── HTTPApplication.ts   # HTTP模式应用（新增）
+│   └── STDIOApplication.ts  # STDIO模式应用（新增）
+├── app.ts                   # 传统应用入口
+└── cli.ts                   # 命令行接口（已更新）
 
 tests/                       # 测试文件
 ├── unit/                    # 单元测试
@@ -240,10 +386,17 @@ tests/                       # 测试文件
 
 docs/                        # 文档
 ├── configuration.md         # 配置文档
-└── api.md                   # API文档
+├── api.md                   # API文档
+└── stdio-mode.md           # STDIO模式指南（新增）
 
 schema/                      # JSON Schema
-└── config.schema.json       # 配置文件Schema
+└── config.schema.json       # 配置文件Schema（已更新）
+
+openspec/                    # OpenSpec规范
+├── specs/                   # 活跃规范
+│   └── stdio-proxy-server/  # STDIO代理服务器规范
+└── changes/                 # 变更提案
+    └── archive/             # 已归档变更
 ```
 
 ## 🌐 API文档
@@ -251,15 +404,24 @@ schema/                      # JSON Schema
 详细API文档请参考：
 - [API接口文档](docs/api.md)
 - [配置文档](docs/configuration.md)
+- [STDIO模式指南](docs/stdio-mode.md) - **新增！**
 
-### 主要端点
+### HTTP API端点
 
 - `GET /health` - 健康检查
 - `GET /api/status` - 状态查询
 - `POST /api/{schema}/mcp` - MCP协议端点
 
+### STDIO接口
+
+- **协议**：JSON-RPC 2.0
+- **输入**：标准输入（stdin）
+- **输出**：标准输出（stdout）
+- **通信方式**：按行分隔的JSON消息
+
 ### 支持的MCP方法
 
+HTTP和STDIO模式都支持所有MCP方法：
 - `tools/list` - 获取工具列表
 - `tools/call` - 调用工具
 - `resources/list` - 获取资源列表
