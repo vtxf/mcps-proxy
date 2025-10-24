@@ -1,6 +1,6 @@
 {
   "name": "mcps-proxy",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "A minimalist MCP (Model Context Protocol) server proxy tool with HTTP and STDIO interface support",
   "main": "dist/app.js",
   "bin": {
