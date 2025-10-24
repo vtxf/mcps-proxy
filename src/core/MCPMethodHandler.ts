@@ -19,6 +19,9 @@ import {
 } from "../types/MCPTypes";
 import { logger } from "../utils/Logger";
 
+// 动态获取版本信息
+const packageVersion = require('../../package.json').version;
+
 /**
  * MCP方法处理器类
  * 实现统一的MCP协议方法处理逻辑
@@ -155,7 +158,7 @@ export class MCPMethodHandler {
                 capabilities,
                 serverInfo: {
                     name: "mcps-proxy",
-                    version: "1.1.0"
+                    version: packageVersion
                 },
                 instructions: `MCP Proxy Server for schema '${schemaName}'. This proxy provides access to ${updatedSchemaStatus.mcpServers.length} MCP servers with ${updatedSchemaStatus.totalTools} total tools.
 
