@@ -1,6 +1,6 @@
 {
   "name": "mcps-proxy",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "⚠️ DEPRECATED: This project has been deprecated. Please use mcp-all-in-one instead. A minimalist MCP (Model Context Protocol) server proxy tool with HTTP and STDIO interface support",
   "main": "dist/app.js",
   "bin": {
