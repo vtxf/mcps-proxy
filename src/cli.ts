@@ -124,6 +124,11 @@ class CLI {
      */
     private showHelp(): void {
         console.log(`
+⚠️  项目已废弃
+本项目已废弃，不再维护。请迁移到新项目：
+📦 mcp-all-in-one: https://www.npmjs.com/package/mcp-all-in-one
+🔗 GitHub仓库: https://github.com/vtxf/mcp-all-in-one
+
 Usage: mcps-proxy [options]
 
 Options:
@@ -175,6 +180,12 @@ For more information, visit: https://github.com/vtxf/mcps-proxy
         console.log(`mcps-proxy v${packageJson.version}`);
         console.log(`Node.js ${process.version}`);
         console.log(`Platform: ${process.platform} ${process.arch}`);
+        
+        // 显示废弃提示
+        console.log("\n⚠️  项目已废弃");
+        console.log("本项目已废弃，不再维护。请迁移到新项目：");
+        console.log("📦 mcp-all-in-one: https://www.npmjs.com/package/mcp-all-in-one");
+        console.log("🔗 GitHub仓库: https://github.com/vtxf/mcp-all-in-one");
     }
 
     /**
@@ -238,6 +249,12 @@ For more information, visit: https://github.com/vtxf/mcps-proxy
      */
     private async startHTTPMode(options: CLIOptions): Promise<void> {
         try {
+            // 显示废弃提示
+            console.log("\n⚠️  项目已废弃");
+            console.log("本项目已废弃，不再维护。请迁移到新项目：");
+            console.log("📦 mcp-all-in-one: https://www.npmjs.com/package/mcp-all-in-one");
+            console.log("🔗 GitHub仓库: https://github.com/vtxf/mcp-all-in-one\n");
+
             // 加载配置
             const config = configLoader.loadConfig({
                 configPath: options.config,
@@ -275,6 +292,12 @@ For more information, visit: https://github.com/vtxf/mcps-proxy
      */
     private async startSTDIOMode(options: CLIOptions): Promise<void> {
         try {
+            // 显示废弃提示
+            console.log("\n⚠️  项目已废弃");
+            console.log("本项目已废弃，不再维护。请迁移到新项目：");
+            console.log("📦 mcp-all-in-one: https://www.npmjs.com/package/mcp-all-in-one");
+            console.log("🔗 GitHub仓库: https://github.com/vtxf/mcp-all-in-one\n");
+
             // 加载配置
             const config = configLoader.loadConfig({
                 configPath: options.config,

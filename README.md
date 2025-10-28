@@ -461,14 +461,14 @@ Create a system service using systemd:
 
 ```ini
 [Unit]
-Description=MCPS Proxy Service
+Description=MCPS Proxy Service (DEPRECATED - Please use mcp-all-in-one)
 After=network.target
 
 [Service]
 Type=simple
 User=mcps-proxy
 WorkingDirectory=/opt/mcps-proxy
-ExecStart=/usr/bin/node /opt/mcps-proxy/dist/cli.js
+ExecStart=/bin/sh -c "echo '⚠️ PROJECT DEPRECATED: This project has been deprecated and is no longer maintained.' && echo 'Please migrate to mcp-all-in-one instead: https://www.npmjs.com/package/mcp-all-in-one' && echo 'GitHub repository: https://github.com/vtxf/mcp-all-in-one' && echo '' && /usr/bin/node /opt/mcps-proxy/dist/cli.js"
 Restart=always
 RestartSec=10
 Environment=NODE_ENV=production

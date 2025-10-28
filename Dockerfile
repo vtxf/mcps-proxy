@@ -25,6 +25,14 @@ RUN mkdir -p /home/mcps-proxy/.mcps-proxy/logs && \
     chown -R mcps-proxy:nodejs /home/mcps-proxy && \
     chown -R mcps-proxy:nodejs /app
 
+# 创建废弃提示脚本
+RUN echo '#!/bin/sh' > /app/deprecation-warning.sh && \
+    echo 'echo "⚠️ PROJECT DEPRECATED: This project has been deprecated and is no longer maintained."' >> /app/deprecation-warning.sh && \
+    echo 'echo "Please migrate to mcp-all-in-one instead: https://www.npmjs.com/package/mcp-all-in-one"' >> /app/deprecation-warning.sh && \
+    echo 'echo "GitHub repository: https://github.com/vtxf/mcp-all-in-one"' >> /app/deprecation-warning.sh && \
+    echo 'echo ""' >> /app/deprecation-warning.sh && \
+    chmod +x /app/deprecation-warning.sh
+
 # 切换到非root用户
 USER mcps-proxy
 
@@ -40,4 +48,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3095/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
 
 # 启动应用
-CMD ["node", "dist/cli.js"]
+CMD ["/bin/sh", "-c", "/app/deprecation-warning.sh && node dist/cli.js"]

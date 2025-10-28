@@ -461,14 +461,14 @@ CMD ["node", "dist/cli.js"]
 
 ```ini
 [Unit]
-Description=MCPS Proxy Service
+Description=MCPS Proxy Service (已废弃 - 请使用mcp-all-in-one)
 After=network.target
 
 [Service]
 Type=simple
 User=mcps-proxy
 WorkingDirectory=/opt/mcps-proxy
-ExecStart=/usr/bin/node /opt/mcps-proxy/dist/cli.js
+ExecStart=/bin/sh -c "echo '⚠️ 项目已废弃：此项目已不再维护。' && echo '请迁移到mcp-all-in-one项目：https://www.npmjs.com/package/mcp-all-in-one' && echo 'GitHub仓库：https://github.com/vtxf/mcp-all-in-one' && echo '' && /usr/bin/node /opt/mcps-proxy/dist/cli.js"
 Restart=always
 RestartSec=10
 Environment=NODE_ENV=production

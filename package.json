@@ -1,12 +1,13 @@
 {
   "name": "mcps-proxy",
   "version": "1.1.1",
-  "description": "A minimalist MCP (Model Context Protocol) server proxy tool with HTTP and STDIO interface support",
+  "description": "⚠️ DEPRECATED: This project has been deprecated. Please use mcp-all-in-one instead. A minimalist MCP (Model Context Protocol) server proxy tool with HTTP and STDIO interface support",
   "main": "dist/app.js",
   "bin": {
     "mcps-proxy": "dist/cli.js"
   },
   "scripts": {
+    "install": "echo \"\\n⚠️  项目已废弃\\n本项目已废弃，不再维护。请迁移到新项目：\\n📦 mcp-all-in-one: https://www.npmjs.com/package/mcp-all-in-one\\n🔗 GitHub仓库: https://github.com/vtxf/mcp-all-in-one\\n\"",
     "build": "tsc",
     "start": "node dist/cli.js",
     "start:http": "node dist/cli.js --http",

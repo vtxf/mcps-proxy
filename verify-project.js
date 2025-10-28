@@ -148,11 +148,18 @@ if (missingFiles === 0 && missingDirs === 0) {
     console.log('  ✅ 所有必需文件和目录都存在');
     console.log('  ✅ 项目结构完整');
     console.log('\n🎉 项目验证通过！mcps-proxy 已成功搭建。');
+    
+    // 添加项目废弃提示
+    console.log('\n⚠️ 重要提示: 此项目已废弃，不再维护');
+    console.log('🔄 请迁移到 mcp-all-in-one 项目');
+    console.log('📦 npm 包: https://www.npmjs.com/package/mcp-all-in-one');
+    console.log('🔗 GitHub: https://github.com/vtxf/mcp-all-in-one');
+    
     console.log('\n🚀 下一步操作:');
     console.log('  1. 安装依赖: npm install');
-    console.log(' 2. 构建项目: npm run build');
-    console.log(' 3. 运行测试: npm test');
-    console.log(' 4. 启动服务: npm start');
+    console.log('  2. 构建项目: npm run build');
+    console.log('  3. 运行测试: npm test');
+    console.log('  4. 启动服务: npm start');
 } else {
     console.log(`  ❌ 发现问题: ${missingFiles} 个文件缺失, ${missingDirs} 个目录缺失`);
     console.log('\n🔧 请检查并修复以上问题。');

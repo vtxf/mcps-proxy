@@ -40,6 +40,11 @@ export class STDIOApplication {
 
         try {
             logger.info("Starting STDIO mcps-proxy application...");
+            
+            // 添加项目废弃提示
+            logger.warn("⚠️ PROJECT DEPRECATED: This project has been deprecated and is no longer maintained.");
+            logger.warn("Please migrate to mcp-all-in-one instead: https://www.npmjs.com/package/mcp-all-in-one");
+            logger.warn("GitHub repository: https://github.com/vtxf/mcp-all-in-one");
 
             // 初始化指定schema
             await this.initializeSingleSchema(this.currentSchema);
