@@ -1,3 +1,12 @@
+# ⚠️ 项目已废弃
+
+**本项目已废弃，不再维护。请迁移到新项目：**
+
+- **mcp-all-in-one**: [https://www.npmjs.com/package/mcp-all-in-one](https://www.npmjs.com/package/mcp-all-in-one)
+- **GitHub 仓库**: [https://github.com/vtxf/mcp-all-in-one](https://github.com/vtxf/mcp-all-in-one)
+
+---
+
 # mcps-proxy
 
 一个极简的MCP（Model Context Protocol）服务器代理工具，将多个独立的MCP服务器合并成统一的HTTP和STDIO接口。

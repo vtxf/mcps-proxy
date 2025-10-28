@@ -1,3 +1,12 @@
+# ⚠️ Project Deprecated
+
+**This project has been deprecated and is no longer maintained. Please migrate to the new project:**
+
+- **mcp-all-in-one**: [https://www.npmjs.com/package/mcp-all-in-one](https://www.npmjs.com/package/mcp-all-in-one)
+- **GitHub Repository**: [https://github.com/vtxf/mcp-all-in-one](https://github.com/vtxf/mcp-all-in-one)
+
+---
+
 # mcps-proxy
 
 A minimalist MCP (Model Context Protocol) server proxy tool that consolidates multiple independent MCP servers into unified HTTP and STDIO interfaces.
